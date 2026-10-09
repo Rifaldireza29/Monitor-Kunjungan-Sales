@@ -53,7 +53,7 @@ st.markdown("Manajemen jadwal keberangkatan, tracking alasan kunjungan, serta pe
 
 # Sidebar Pengguna & Tambah Data
 st.sidebar.header("👤 Profil Pengguna")
-daftar_sales = ["Budi Santoso", "Siti Aminah"]
+daftar_sales = ["Budi Santoso", "Siti Aminah", "Surya"]
 sales_aktif = st.sidebar.selectbox("Pilih Nama Anda:", daftar_sales)
 
 st.sidebar.markdown("---")
