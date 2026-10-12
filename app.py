@@ -27,10 +27,10 @@ def init_db():
     c.execute("SELECT COUNT(*) FROM rencana_kunjungan")
     if c.fetchone()[0] == 0:
         sample_data = [
-            ('Budi Santoso', '2026-10-15', 'Semarang', 'PT Maju Jaya', 'Negosiasi perpanjangan kontrak tahunan dan demonstrasi produk baru.'),
-            ('Budi Santoso', '2026-10-15', 'Semarang', 'Toko Elektronik Berkah', 'Sudah 3 bulan tidak melakukan repeat order, cek kendala di toko.'),
-            ('Siti Aminah', '2026-10-16', 'Surabaya', 'CV Sumber Makmur', 'Penagihan invoice yang sudah jatuh tempo lebih dari 2 minggu.'),
-            ('Siti Aminah', '2026-10-16', 'Surabaya', 'PT Global Niaga', 'Menyelesaikan klaim retur barang cacat produksi bulan lalu.')
+            #('Budi Santoso', '2026-10-15', 'Semarang', 'PT Maju Jaya', 'Negosiasi perpanjangan kontrak tahunan dan demonstrasi produk baru.'),
+            #('Budi Santoso', '2026-10-15', 'Semarang', 'Toko Elektronik Berkah', 'Sudah 3 bulan tidak melakukan repeat order, cek kendala di toko.'),
+            #('Siti Aminah', '2026-10-16', 'Surabaya', 'CV Sumber Makmur', 'Penagihan invoice yang sudah jatuh tempo lebih dari 2 minggu.'),
+            #('Siti Aminah', '2026-10-16', 'Surabaya', 'PT Global Niaga', 'Menyelesaikan klaim retur barang cacat produksi bulan lalu.')
         ]
         c.executemany('''
             INSERT INTO rencana_kunjungan (sales_name, tanggal, kota, nama_customer, alasan_kunjungan)
@@ -53,7 +53,7 @@ st.markdown("Manajemen jadwal keberangkatan, tracking alasan kunjungan, serta pe
 
 # Sidebar Pengguna & Tambah Data
 st.sidebar.header("👤 Profil Pengguna")
-daftar_sales = ["Budi Santoso", "Siti Aminah", "Surya"]
+daftar_sales = ["Alfian", "Asep", "Azia", "Dadan", "Didin", "Fajar", "Rizky"]
 sales_aktif = st.sidebar.selectbox("Pilih Nama Anda:", daftar_sales)
 
 st.sidebar.markdown("---")
