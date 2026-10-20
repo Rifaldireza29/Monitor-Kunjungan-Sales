@@ -1,5 +1,6 @@
 from datetime import datetime
 import io
+import json
 import pandas as pd
 import streamlit as st
 
@@ -15,8 +16,8 @@ SCOPE = [
 
 
 def get_gsheet_client():
-  # Mengambil dictionary langsung dari secrets Streamlit [gcp_service_account]
-  creds_dict = dict(st.secrets["gcp_service_account"])
+  # Membaca data JSON mentah dari secrets [gcp_json]
+  creds_dict = json.loads(st.secrets["gcp_json"]["data"])
   creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
   client = gspread.authorize(creds)
   return client
@@ -24,7 +25,6 @@ def get_gsheet_client():
 
 def get_worksheet():
   client = get_gsheet_client()
-  # Nama Google Spreadsheet Anda
   sheet_name = "DB_Kunjungan_Sales"
   sh = client.open(sheet_name)
   worksheet = sh.worksheet("rencana_kunjungan")
@@ -84,7 +84,6 @@ with st.sidebar.form("form_tambah_jadwal"):
       st.error("Semua kolom input jadwal wajib diisi!")
     else:
       df_existing = load_data_to_df()
-      # Generate ID otomatis
       if not df_existing.empty and "id" in df_existing.columns:
         numeric_ids = pd.to_numeric(df_existing["id"], errors="coerce")
         new_id = int(numeric_ids.max()) + 1 if not numeric_ids.isna().all() else 1
