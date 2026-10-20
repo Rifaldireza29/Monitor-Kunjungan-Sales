@@ -15,7 +15,6 @@ SCOPE = [
 
 
 def get_gsheet_client():
-  # Membaca langsung dari secrets [gcp_service_account] secara otomatis oleh Streamlit
   creds_dict = dict(st.secrets["gcp_service_account"])
   creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
   client = gspread.authorize(creds)
@@ -30,7 +29,8 @@ def get_worksheet():
   return worksheet
 
 
-# --- LOAD DATA UTILS ---
+# --- LOAD DATA DENGAN CACHE & TTL ---
+@st.cache_data(ttl=300)  # Cache data selama 5 menit agar tidak lambat
 def load_data_to_df():
   ws = get_worksheet()
   data = ws.get_all_records()
@@ -82,14 +82,18 @@ with st.sidebar.form("form_tambah_jadwal"):
     if not new_kota.strip() or not new_cust.strip() or not new_alasan.strip():
       st.error("Semua kolom input jadwal wajib diisi!")
     else:
-      df_existing = load_data_to_df()
-      if not df_existing.empty and "id" in df_existing.columns:
-        numeric_ids = pd.to_numeric(df_existing["id"], errors="coerce")
+      # Bersihkan cache agar data terbaru langsung terbaca
+      st.cache_data.clear()
+
+      ws = get_worksheet()
+      df_existing = ws.get_all_records()
+      if df_existing:
+        df_temp = pd.DataFrame(df_existing)
+        numeric_ids = pd.to_numeric(df_temp["id"], errors="coerce")
         new_id = int(numeric_ids.max()) + 1 if not numeric_ids.isna().all() else 1
       else:
         new_id = 1
 
-      ws = get_worksheet()
       row_data = [
           int(new_id),
           sales_aktif,
@@ -113,7 +117,16 @@ tab1, tab2, tab3 = st.tabs(
 
 # --- TAB 1: LIHAT RENCANA KUNJUNGAN ---
 with tab1:
-  st.header("Cek Jadwal Kunjungan Luar Kota")
+  col_title, col_btn = st.columns([4, 1])
+  with col_title:
+    st.header("Cek Jadwal Kunjungan Luar Kota")
+  with col_btn:
+    st.write("")  # Spacing vertikal agar sejajar
+    if st.button("🔄 Refresh Data", key="ref_tab1"):
+      st.cache_data.clear()
+      st.success("Data berhasil diperbarui!")
+      st.rerun()
+
   st.info(
       "Pilih tanggal keberangkatan Anda untuk memunculkan daftar target"
       " customer beserta alasan kunjungan."
@@ -155,7 +168,16 @@ with tab1:
 
 # --- TAB 2: INPUT LAPORAN & FOLLOW-UP (PULANG KANTOR) ---
 with tab2:
-  st.header("Laporan Hasil Kunjungan Akhir Hari")
+  col_title2, col_btn2 = st.columns([4, 1])
+  with col_title2:
+    st.header("Laporan Hasil Kunjungan Akhir Hari")
+  with col_btn2:
+    st.write("")
+    if st.button("🔄 Refresh Data", key="ref_tab2"):
+      st.cache_data.clear()
+      st.success("Data berhasil diperbarui!")
+      st.rerun()
+
   st.markdown(
       "Isi form di bawah ini ketika Anda telah kembali atau sebelum jam pulang"
       " kantor selesai."
@@ -204,6 +226,7 @@ with tab2:
                 " diisi."
             )
           else:
+            st.cache_data.clear()
             ws = get_worksheet()
             cell = ws.find(str(selected_id))
             if cell:
@@ -224,7 +247,16 @@ with tab2:
 
 # --- TAB 3: EXPORT LAPORAN & HISTORI ---
 with tab3:
-  st.header("📥 Pusat Unduh & Cetak Laporan")
+  col_title3, col_btn3 = st.columns([4, 1])
+  with col_title3:
+    st.header("📥 Pusat Unduh & Cetak Laporan")
+  with col_btn3:
+    st.write("")
+    if st.button("🔄 Refresh Data", key="ref_tab3"):
+      st.cache_data.clear()
+      st.success("Data berhasil diperbarui!")
+      st.rerun()
+
   st.markdown(
       "Anda dapat melihat seluruh riwayat kunjungan kerja yang telah selesai"
       " dan mengunduhnya ke berbagai format berkas."
