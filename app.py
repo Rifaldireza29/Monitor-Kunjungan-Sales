@@ -1,5 +1,6 @@
 from datetime import datetime
 import io
+import json
 import pandas as pd
 import streamlit as st
 
@@ -8,7 +9,6 @@ from google.oauth2.service_account import Credentials
 import gspread
 
 # --- SETUP Koneksi Google Sheets ---
-# Pastikan Anda sudah mendaftarkan secrets di Streamlit (st.secrets["gcp_service_account"])
 SCOPE = [
     "https://www.googleapis.com/auth/spreadsheets",
     "https://www.googleapis.com/auth/drive",
@@ -16,8 +16,8 @@ SCOPE = [
 
 
 def get_gsheet_client():
-  # Mengambil kredensial dari st.secrets Streamlit
-  creds_dict = dict(st.secrets["gcp_service_account"])
+  # Mengambil kredensial dari st.secrets Streamlit (gcp_json)
+  creds_dict = json.loads(st.secrets["gcp_json"]["data"])
   creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
   client = gspread.authorize(creds)
   return client
@@ -25,19 +25,18 @@ def get_gsheet_client():
 
 def get_worksheet():
   client = get_gsheet_client()
-  # Ganti dengan nama Google Spreadsheet Anda
+  # Nama Google Spreadsheet Anda
   sheet_name = "DB_Kunjungan_Sales"
   sh = client.open(sheet_name)
   worksheet = sh.worksheet("rencana_kunjungan")
   return worksheet
 
 
-# --- LOAD & CONVERT DATA UTILS ---
+# --- LOAD DATA UTILS ---
 def load_data_to_df():
   ws = get_worksheet()
   data = ws.get_all_records()
   if not data:
-    # Mengembalikan DataFrame kosong dengan kolom standar jika masih kosong
     return pd.DataFrame(
         columns=[
             "id",
@@ -86,15 +85,14 @@ with st.sidebar.form("form_tambah_jadwal"):
       st.error("Semua kolom input jadwal wajib diisi!")
     else:
       df_existing = load_data_to_df()
-      # Generate ID otomatis (Auto Increment sederhana)
-      new_id = (
-          int(df_existing["id"].max()) + 1
-          if not df_existing.empty and df_existing["id"].astype(str).isdigit()
-          else 1
-      )
+      # Generate ID otomatis
+      if not df_existing.empty and "id" in df_existing.columns:
+        numeric_ids = pd.to_numeric(df_existing["id"], errors="coerce")
+        new_id = int(numeric_ids.max()) + 1 if not numeric_ids.isna().all() else 1
+      else:
+        new_id = 1
 
       ws = get_worksheet()
-      # Baris baru sesuai urutan kolom
       row_data = [
           int(new_id),
           sales_aktif,
@@ -131,19 +129,13 @@ with tab1:
 
   df = load_data_to_df()
   if not df.empty:
-    # Filter data berdasarkan sales aktif dan tanggal
-    df["id"] = df["id"].astype(str)  # amankan tipe data
+    df["id"] = df["id"].astype(str)
     filtered_df = df[
         (df["sales_name"] == sales_aktif) & (df["tanggal"] == str_tanggal)
     ]
 
     display_df = filtered_df[
-        [
-            "kota",
-            "nama_customer",
-            "alasan_kunjungan",
-            "status",
-        ]
+        ["kota", "nama_customer", "alasan_kunjungan", "status"]
     ].rename(
         columns={
             "kota": "Kota Tujuan",
@@ -174,7 +166,6 @@ with tab2:
 
   df = load_data_to_df()
   if not df.empty:
-    # Filter data milik sales aktif yang statusnya masih 'Plan'
     df_lap = df[
         (df["sales_name"] == sales_aktif) & (df["status"] == "Plan")
     ].copy()
@@ -217,14 +208,12 @@ with tab2:
             )
           else:
             ws = get_worksheet()
-            # Cari nomor baris berdasarkan ID di Google Sheets
             cell = ws.find(str(selected_id))
             if cell:
               row_idx = cell.row
-              # Update kolom ke-8 (laporan_hasil) dan ke-9 (follow_up), serta ke-7 (status='Selesai')
-              ws.update_cell(row_idx, 7, "Selesai")  # Kolom status
-              ws.update_cell(row_idx, 8, laporan_hasil)  # Kolom laporan_hasil
-              ws.update_cell(row_idx, 9, follow_up)  # Kolom follow_up
+              ws.update_cell(row_idx, 7, "Selesai")
+              ws.update_cell(row_idx, 8, laporan_hasil)
+              ws.update_cell(row_idx, 9, follow_up)
 
               st.success(
                   f"Sukses! Laporan untuk {detail_cust['nama_customer']} telah"
@@ -234,7 +223,7 @@ with tab2:
     else:
       st.success("🎉 Hebat! Semua agenda kunjungan Anda telah terlaporkan hari ini.")
   else:
-     st.warning("Belum ada data di Google Sheets.")
+    st.warning("Belum ada data di Google Sheets.")
 
 # --- TAB 3: EXPORT LAPORAN & HISTORI ---
 with tab3:
@@ -265,7 +254,7 @@ with tab3:
               "tanggal": "Tanggal",
               "kota": "Kota Tujuan",
               "nama_customer": "Nama Customer",
-              "alasan_kjn": "Alasan Kunjungan",
+              "alasan_kunjungan": "Alasan Kunjungan",
               "laporan_hasil": "Hasil Laporan",
               "follow_up": "Rencana Follow-Up",
           }
