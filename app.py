@@ -1,6 +1,5 @@
 from datetime import datetime
 import io
-import json
 import pandas as pd
 import streamlit as st
 
@@ -16,8 +15,8 @@ SCOPE = [
 
 
 def get_gsheet_client():
-  # Mengambil kredensial dari st.secrets Streamlit (gcp_json)
-  creds_dict = json.loads(st.secrets["gcp_json"]["data"])
+  # Mengambil dictionary langsung dari secrets Streamlit [gcp_service_account]
+  creds_dict = dict(st.secrets["gcp_service_account"])
   creds = Credentials.from_service_account_info(creds_dict, scopes=SCOPE)
   client = gspread.authorize(creds)
   return client
